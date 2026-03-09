@@ -1,7 +1,8 @@
 const User = require("../models/user.model")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
-const { registerSchema } = require("../schema/user.schema")
+const { registerSchema, loginSchema } = require("../schema/user.schema")
+const AppError = require("../utils/AppError")
 
 exports.register = async (req,res,next) => {
 
@@ -19,7 +20,6 @@ exports.register = async (req,res,next) => {
 
     if(user){
         throw new AppError ("User exists",400)
-
     }
 
     const hash = await bcrypt.hash(password,10)
@@ -30,7 +30,10 @@ exports.register = async (req,res,next) => {
         password:hash
     })
 
-    return res.json(newUser)
+    const userObj = newUser.toObject()
+    delete userObj.password
+
+    return res.status(201).json(userObj)
 }catch(err){
     next(err)
 }
@@ -54,25 +57,24 @@ exports.login = async (req,res,next) => {
     const user = await User.findOne({email})
 
     if(!user){
-       throw new AppError ("Invalid credentials",400)
-
+       throw new AppError ("Invalid credentials",401)
     }
 
-    const match = await bcrypt.compare(password ,user.password)
+    const match = await bcrypt.compare(password, user.password)
 
     if(!match){
-        throw new AppError ("Invaid credentials",400)
+        throw new AppError ("Invalid credentials",401)
     }
 
     const token = jwt.sign(
-        {id:user._id},
+        {userid:user._id},
         process.env.JWT_SECRET,
         {expiresIn:"1d"}
     )
 
     res.json({token})
 
-}catch(e){
+}catch(err){
     next(err)
 }
 }
