@@ -27,7 +27,7 @@ exports.createTodo = async(req,res,next)=>{
         userid:req.userid
     })
 
-    res.json(todo)
+    res.status(201).json(todo)
 }catch(err){
     next(err)
 }
@@ -42,15 +42,14 @@ exports.getTodos = async(req,res,next)=>{
         userid:req.userid
     })
 
-    if(!todos){
-
-    throw new AppError("Todos not Found",404)
+    if(!todos || todos.length === 0){
+        return res.json([])
     }
 
     const sortedTodos = sortTodos(todos)
 
     res.json(sortedTodos);
-    
+
 }catch(err){
     next(err)
 }
@@ -61,11 +60,20 @@ exports.updateTodo = async(req,res,next)=>{
     try{
     const id = req.params.id
 
+     if(!id || !mongoose.Types.ObjectId.isValid(id)){
+        throw new AppError("Invalid todo id", 400)
+    }
+
     const {title,complete} = req.body
+
+    const updates = {}
+    if (typeof title !== "undefined") updates.title = title
+    if (typeof complete !== "undefined") updates.complete = complete
+
 
     const todo = await Todo.findByIdAndUpdate(
         id,
-        {title,complete},
+        updates,
         {new:true}
     )
 
@@ -81,11 +89,15 @@ exports.deleteTodo = async(req,res,next)=>{
     try{
     const id = req.params.id;
 
-    if(id){
+    if(!id || !mongoose.Types.ObjectId.isValid(id)){
         throw new AppError("Invalid input", 400)
     }
 
-    await Todo.findByIdAndDelete(id)
+    const deleted = await Todo.findByIdAndDelete(id)
+
+    if(!deleted){
+        throw new AppError("Todo not found", 404)
+    }
 
     res.json({message:"Todo deleted"});
 
