@@ -5,11 +5,11 @@ const auth = (req,res,next) => {
     const token = req.headers.token
 
     if(!token){
-        return res.status(401).json({message:"No token"})
+        throw new AppError ("No token",401)
     }
 
-    try{
 
+    try{
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
 
         req.userid = decoded.id
@@ -17,7 +17,7 @@ const auth = (req,res,next) => {
         next()
 
     }catch(err){
-        return res.status(401).json({message:"Invalid token"})
+        throw new AppError ("No token",401) 
     }
 }
 

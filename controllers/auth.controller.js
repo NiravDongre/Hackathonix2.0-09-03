@@ -1,43 +1,67 @@
 const User = require("../models/user.model")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
+const { registerSchema } = require("../schema/user.schema")
 
-exports.register = async(req,res)=>{
+exports.register = async (req,res,next) => {
 
-    const {name,email,password} = req.body
+    try{
+    const result = registerSchema.safeParse(req.body)
+
+    if(!result.success){
+        return res.status(400).json({
+            error: result.error.errors
+        })
+    }
+    const { username,email,password } = result.data
 
     const user = await User.findOne({email})
 
     if(user){
-        return res.status(400).json({message:"User exists"})
+        throw new AppError ("User exists",400)
+
     }
 
     const hash = await bcrypt.hash(password,10)
 
     const newUser = await User.create({
-        name,
+        username,
         email,
         password:hash
     })
 
-    res.json(newUser)
+    return res.json(newUser)
+}catch(err){
+    next(err)
+}
 }
 
 
-exports.login = async(req,res)=>{
+exports.login = async (req,res,next) => {
 
-    const {email,password} = req.body
+    try{
+
+    const result = loginSchema.safeParse(req.body)
+
+    if(!result.success){
+        return res.status(400).json({
+            error: result.error.errors
+        })
+    }
+
+    const { email, password } = result.data
 
     const user = await User.findOne({email})
 
     if(!user){
-        return res.status(400).json({message:"Invalid credentials"})
+       throw new AppError ("Invalid credentials",400)
+
     }
 
-    const match = await bcrypt.compare(password,user.password)
+    const match = await bcrypt.compare(password ,user.password)
 
     if(!match){
-        return res.status(400).json({message:"Invalid credentials"})
+        throw new AppError ("Invaid credentials",400)
     }
 
     const token = jwt.sign(
@@ -47,4 +71,8 @@ exports.login = async(req,res)=>{
     )
 
     res.json({token})
+
+}catch(e){
+    next(err)
+}
 }

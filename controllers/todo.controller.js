@@ -1,9 +1,22 @@
 const Todo = require("../models/todo.model")
+const sortTodos = require("../utils/sortTodos")
 const predictPriority = require("../utils/priorityPredictor")
+const todoSchema = require("../schema/todo.schema")
+const AppError = require("../utils/AppError")
 
-exports.createTodo = async(req,res)=>{
+exports.createTodo = async(req,res,next)=>{
 
-    const {title,deadline} = req.body
+    try{
+
+    const result = todoSchema.safeParse(req.body)
+
+    if(!result.success){
+        return res.status(400).json({
+            error: result.error.errors
+        })
+    }
+
+    const {title,deadline} = result.data
 
     const priority = predictPriority(title,deadline)
 
@@ -15,19 +28,37 @@ exports.createTodo = async(req,res)=>{
     })
 
     res.json(todo)
+}catch(err){
+    next(err)
 }
-exports.getTodos = async(req,res)=>{
+}
 
+
+
+exports.getTodos = async(req,res,next)=>{
+
+    try{
     const todos = await Todo.find({
         userid:req.userid
     })
 
-    res.json(todos)
+    if(!todos){
+
+    throw new AppError("Todos not Found",404)
+    }
+
+    const sortedTodos = sortTodos(todos)
+
+    res.json(sortedTodos);
+    
+}catch(err){
+    next(err)
+}
 }
 
+exports.updateTodo = async(req,res,next)=>{
 
-exports.updateTodo = async(req,res)=>{
-
+    try{
     const id = req.params.id
 
     const {title,complete} = req.body
@@ -39,14 +70,27 @@ exports.updateTodo = async(req,res)=>{
     )
 
     res.json(todo)
+}catch(err){
+    next(err)
+}
 }
 
 
-exports.deleteTodo = async(req,res)=>{
+exports.deleteTodo = async(req,res,next)=>{
 
-    const id = req.params.id
+    try{
+    const id = req.params.id;
+
+    if(id){
+        throw new AppError("Invalid input", 400)
+    }
 
     await Todo.findByIdAndDelete(id)
 
-    res.json({message:"Todo deleted"})
+    res.json({message:"Todo deleted"});
+
+    }catch(err){
+        next(err)
+    }
+
 }
