@@ -3,19 +3,19 @@ const predictPriority = require("../utils/priorityPredictor")
 
 exports.createTodo = async(req,res)=>{
 
-    const {title} = req.body
+    const {title,deadline} = req.body
 
-    const priority = predictPriority(title)
+    const priority = predictPriority(title,deadline)
 
     const todo = await Todo.create({
         title,
+        deadline,
         priority,
         userid:req.userid
     })
 
     res.json(todo)
 }
-
 exports.getTodos = async(req,res)=>{
 
     const todos = await Todo.find({

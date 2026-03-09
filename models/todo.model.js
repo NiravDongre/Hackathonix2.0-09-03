@@ -14,10 +14,15 @@ const todoSchema = new mongoose.Schema({
         enum:["low","medium","high"],
         default:"low"
     },
+    deadline:{
+        type:Date
+    },
     userid:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User"
     }
+},{
+    timestamps:true
 })
 
 module.exports = mongoose.model("Todo", todoSchema)
